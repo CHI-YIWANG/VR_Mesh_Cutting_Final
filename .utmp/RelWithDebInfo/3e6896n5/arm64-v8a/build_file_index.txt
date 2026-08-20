@@ -1,0 +1,2 @@
+C:\Users\polliter\VR_Mesh_Cutting_Final\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\polliter\VR_Mesh_Cutting_Final\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

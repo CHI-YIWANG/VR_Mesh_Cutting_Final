@@ -1,0 +1,78 @@
+{
+    "version": 1,
+    "name": "CuttingControls",
+    "maps": [
+        {
+            "name": "VRControls",
+            "id": "129f3f60-3be3-4500-800b-0c51e3eab7ad",
+            "actions": [
+                {
+                    "name": "Reset",
+                    "type": "Button",
+                    "id": "72bd78a3-4453-4669-b7b9-e8b54c289731",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Undo",
+                    "type": "Button",
+                    "id": "769f648c-8dbf-45b3-a5bb-b5ae1e4a3da5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Hint",
+                    "type": "Button",
+                    "id": "5645d814-1295-49d4-8204-6aa52f94864c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "3a639633-7316-47a0-8160-3f9c5031df83",
+                    "path": "<OculusTouchController>{RightHand}/secondaryButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reset",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "439abc08-801d-4571-b9fc-9b93d81ea495",
+                    "path": "<OculusTouchController>{RightHand}/thumbstickClicked",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Undo",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "176088d9-1999-47bb-b7fa-55bd5b34cc96",
+                    "path": "<OculusTouchController>{LeftHand}/primaryButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hint",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
