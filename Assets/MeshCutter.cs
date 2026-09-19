@@ -53,9 +53,13 @@ public class MeshCutter : MonoBehaviour
 
         GameObject target = currentTarget;
 
+        // 用「校正過的法向量」切割，讓切面固定是平整的，
+        // 不會因為手持角度的細微誤差（視角差、手抖）而切歪
+        Vector3 sliceNormal = GetSnappedPlaneNormal();
+
         SlicedHull hull = target.Slice(
             cuttingPlane.position,
-            cuttingPlane.up
+            sliceNormal
         );
 
         if (hull == null)
@@ -132,6 +136,33 @@ public class MeshCutter : MonoBehaviour
         }
 
         Debug.Log("切割成功！");
+    }
+
+    // 把切割板目前的角度，「吸附」到最接近的 45 度倍數（0、45、90...），
+    // 這樣即使手持時因為視角差有些微傾斜，實際切下去的平面還是固定角度、
+    // 切面會是平整的，不會歪七扭八。
+    private Vector3 GetSnappedPlaneNormal()
+    {
+        Vector3 angles = cuttingPlane.eulerAngles;
+
+        float snappedX = SnapAngle(angles.x);
+        float snappedZ = SnapAngle(angles.z);
+
+        Quaternion snappedRotation = Quaternion.Euler(
+            snappedX,
+            angles.y,
+            snappedZ
+        );
+
+        return snappedRotation * Vector3.up;
+    }
+
+    private float SnapAngle(float angle)
+    {
+        if (angle > 180f)
+            angle -= 360f;
+
+        return Mathf.Round(angle / 45f) * 45f;
     }
 
     private void SetupCutPiece(
