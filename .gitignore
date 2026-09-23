@@ -23,3 +23,8 @@
 .DS_Store
 Thumbs.db
 *.apk
+
+.vs/
+.utmp/
+*BurstDebugInformation_DoNotShip/
+*BackupThisFolder_ButDontShipItWithYourGame/

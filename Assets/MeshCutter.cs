@@ -10,6 +10,9 @@ public class MeshCutter : MonoBehaviour
     [SerializeField] private AITutorManager aiTutorManager;
     [SerializeField] private CutAnalyzer cutAnalyzer;
 
+    // 玩家視角 AI 截圖
+    [SerializeField] private AIVisionCapture aiVisionCapture;
+
     private GameObject currentTarget;
 
     private void OnTriggerEnter(Collider other)
@@ -18,7 +21,11 @@ public class MeshCutter : MonoBehaviour
             other.CompareTag("CutPiece"))
         {
             currentTarget = other.gameObject;
-            Debug.Log("進入切割區：" + currentTarget.name);
+
+            Debug.Log(
+                "進入切割區：" +
+                currentTarget.name
+            );
         }
     }
 
@@ -28,63 +35,85 @@ public class MeshCutter : MonoBehaviour
             currentTarget == other.gameObject)
         {
             Debug.Log("離開切割區");
+
             currentTarget = null;
         }
     }
 
+    // =========================================================
+    // 確認切割
+    // =========================================================
     public void ConfirmCut()
     {
         if (currentTarget == null)
         {
-            Debug.Log("目前沒有可以切割的物件");
+            Debug.Log(
+                "目前沒有可以切割的物件"
+            );
+
             return;
         }
 
         SliceTarget();
     }
 
+    // =========================================================
+    // 執行切割
+    // =========================================================
     private void SliceTarget()
     {
         if (cuttingPlane == null)
         {
-            Debug.LogError("MeshCutter 尚未指定 Cutting Plane");
+            Debug.LogError(
+                "MeshCutter 尚未指定 Cutting Plane"
+            );
+
             return;
         }
 
-        GameObject target = currentTarget;
+        GameObject target =
+            currentTarget;
 
-        // 用「校正過的法向量」切割，讓切面固定是平整的，
-        // 不會因為手持角度的細微誤差（視角差、手抖）而切歪
-        Vector3 sliceNormal = GetSnappedPlaneNormal();
+        // 使用校正後的切割角度
+        Vector3 sliceNormal =
+            GetSnappedPlaneNormal();
 
-        SlicedHull hull = target.Slice(
-            cuttingPlane.position,
-            sliceNormal
-        );
+        SlicedHull hull =
+            target.Slice(
+                cuttingPlane.position,
+                sliceNormal
+            );
 
         if (hull == null)
         {
             Debug.LogWarning(
                 "切割失敗：切割平面可能沒有真正穿過物件"
             );
+
             return;
         }
 
+        // 建立上半部
         GameObject upperHull =
             hull.CreateUpperHull(
                 target,
                 crossSectionMaterial
             );
 
+        // 建立下半部
         GameObject lowerHull =
             hull.CreateLowerHull(
                 target,
                 crossSectionMaterial
             );
 
-        if (upperHull == null || lowerHull == null)
+        if (upperHull == null ||
+            lowerHull == null)
         {
-            Debug.LogWarning("切割失敗：無法建立切割後物件");
+            Debug.LogWarning(
+                "切割失敗：無法建立切割後物件"
+            );
+
             return;
         }
 
@@ -94,6 +123,7 @@ public class MeshCutter : MonoBehaviour
         lowerHull.name =
             target.name + "_Lower";
 
+        // 設定切割後物件
         SetupCutPiece(
             upperHull,
             cuttingPlane.up
@@ -104,7 +134,10 @@ public class MeshCutter : MonoBehaviour
             -cuttingPlane.up
         );
 
-        // 保存這一刀，讓 Undo 可以復原
+        // =====================================================
+        // Undo
+        // =====================================================
+
         if (undoManager != null)
         {
             undoManager.SaveCut(
@@ -116,63 +149,118 @@ public class MeshCutter : MonoBehaviour
 
         currentTarget = null;
 
-        // Undo 還需要原本物件，所以不能 Destroy
+        // Undo 還需要原始物件
+        // 所以這裡不 Destroy
         target.SetActive(false);
 
-        // 先告訴 AI Tutor：完成了一刀
+        // =====================================================
+        // 告訴 AI Tutor：完成一刀
+        // =====================================================
+
         if (aiTutorManager != null)
         {
             aiTutorManager.OnCutCompleted();
         }
+        // =====================================================
+        // 玩家視角 AI 截圖
+        // =====================================================
 
-        // 最後才分析切割結果
-        // 之後這裡會把真正的切割資料送到 AI
-        if (cutAnalyzer != null)
+        if (aiVisionCapture != null)
         {
-            cutAnalyzer.AnalyzeHalfCut(
-                upperHull,
-                lowerHull
+            StartCoroutine(
+                CaptureAfterCut()
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "MeshCutter 尚未指定 AIVisionCapture"
             );
         }
 
         Debug.Log("切割成功！");
     }
 
-    // 把切割板目前的角度，「吸附」到最接近的 45 度倍數（0、45、90...），
-    // 這樣即使手持時因為視角差有些微傾斜，實際切下去的平面還是固定角度、
-    // 切面會是平整的，不會歪七扭八。
+    // =========================================================
+    // 切割後等待一幀，再拍玩家視角
+    // =========================================================
+
+    private System.Collections.IEnumerator CaptureAfterCut()
+    {
+        // 等待一幀
+        // 讓新的 CutPiece 先出現在畫面上
+        yield return null;
+
+        if (aiVisionCapture != null)
+        {
+            Debug.Log(
+                "準備擷取切割後的玩家視角..."
+            );
+
+            aiVisionCapture
+                .CaptureAndSendToAI();
+        }
+    }
+
+    // =========================================================
+    // 校正切割角度
+    // =========================================================
+
     private Vector3 GetSnappedPlaneNormal()
     {
-        Vector3 angles = cuttingPlane.eulerAngles;
+        Vector3 angles =
+            cuttingPlane.eulerAngles;
 
-        float snappedX = SnapAngle(angles.x);
-        float snappedZ = SnapAngle(angles.z);
+        float snappedX =
+            SnapAngle(
+                angles.x
+            );
 
-        Quaternion snappedRotation = Quaternion.Euler(
-            snappedX,
-            angles.y,
-            snappedZ
-        );
+        float snappedZ =
+            SnapAngle(
+                angles.z
+            );
 
-        return snappedRotation * Vector3.up;
+        Quaternion snappedRotation =
+            Quaternion.Euler(
+                snappedX,
+                angles.y,
+                snappedZ
+            );
+
+        return snappedRotation *
+               Vector3.up;
     }
 
-    private float SnapAngle(float angle)
+    private float SnapAngle(
+        float angle
+    )
     {
         if (angle > 180f)
+        {
             angle -= 360f;
+        }
 
-        return Mathf.Round(angle / 45f) * 45f;
+        return Mathf.Round(
+            angle / 45f
+        ) * 45f;
     }
+
+    // =========================================================
+    // 設定切割後的物件
+    // =========================================================
 
     private void SetupCutPiece(
         GameObject piece,
-        Vector3 pushDirection)
+        Vector3 pushDirection
+    )
     {
         if (piece == null)
+        {
             return;
+        }
 
-        // 切割後仍然可以再次切割
+        // 切割後仍可以再次切割
         piece.tag = "CutPiece";
 
         MeshFilter meshFilter =
@@ -184,10 +272,14 @@ public class MeshCutter : MonoBehaviour
             Debug.LogWarning(
                 "切割物件缺少 MeshFilter 或 Mesh"
             );
+
             return;
         }
 
-        // 建立新的 Collider
+        // =====================================================
+        // Collider
+        // =====================================================
+
         MeshCollider meshCollider =
             piece.AddComponent<MeshCollider>();
 
@@ -196,7 +288,10 @@ public class MeshCutter : MonoBehaviour
 
         meshCollider.convex = true;
 
-        // 切完後先自由掉落
+        // =====================================================
+        // Rigidbody
+        // =====================================================
+
         Rigidbody rb =
             piece.AddComponent<Rigidbody>();
 
@@ -207,19 +302,29 @@ public class MeshCutter : MonoBehaviour
         rb.collisionDetectionMode =
             CollisionDetectionMode.Continuous;
 
-        // 稍微推開兩塊，讓切割效果更明顯
+        // 稍微把兩塊推開
         rb.AddForce(
-            pushDirection.normalized * 0.08f,
+            pushDirection.normalized *
+            0.08f,
             ForceMode.Impulse
         );
 
-        // 讓切割後的物件可以被 VR 抓取
-        XRGrabInteractable grab =
-            piece.AddComponent<XRGrabInteractable>();
+        // =====================================================
+        // VR Grab
+        // =====================================================
 
-        grab.colliders.Add(meshCollider);
+        XRGrabInteractable grab =
+            piece.AddComponent<
+                XRGrabInteractable
+            >();
+
+        grab.colliders.Add(
+            meshCollider
+        );
 
         // 第一次抓起再放開後固定
-        piece.AddComponent<CutPieceFreezeAfterGrab>();
+        piece.AddComponent<
+            CutPieceFreezeAfterGrab
+        >();
     }
 }
